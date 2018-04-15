@@ -4,6 +4,8 @@
  ------------------------------
  
  Artemis23consoleMultiJoyStick.ino - Console Keyboard and Joystick emulator
+ Target: "Arduino/Genuino Micro" enumerates as Composite with HID devices.
+         also compiles as "Arduino Leonardo".
  
  This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 
  Unported License (CC BY-SA 3.0) http://creativecommons.org/licenses/by-sa/3.0/
@@ -19,7 +21,7 @@
 *******************************************************************************/
 
 /*Uncomment the desired console*/
-#define DEBUG_CONSOLE   1
+#define DEBUG_CONSOLE   1  // See below to define number of MPR chips.
 //#define ENGINEERING 	  2
 //#define WEAPONS 			  3
 //#define SCIENCE 			  4
@@ -27,29 +29,29 @@
 //#define COMMUNICATIONS  6
 //#define HELM 						7 (also uses Joystick)
 
-#include <MPR121.h>
+#include "MPR121.h"
 #include <Wire.h>
 #ifdef HELM
-	#include <Joystick.h>
+	#include "Joystick.h"
 #endif // HELM
-#include <Keyboard.h>
+#include "Keyboard.h"
 #define LENGTH_OF_ARRAY(x) ((sizeof(x)/sizeof(x[0])))
-#define numElectrodes 12
+#define numElectrodes 12 // per MPR chip
 
 typedef struct 
   {
       MPR121_t device;
       uint8_t address;
-      unsigned char tthresh[12];
-      unsigned char rthresh[12];
-      uint8_t modifier[12];
-      uint8_t key[12];
-      uint8_t pressDuration[12];
+      unsigned char tthresh[numElectrodes];
+      unsigned char rthresh[numElectrodes];
+      uint8_t modifier[numElectrodes];
+      uint8_t key[numElectrodes];
+      uint8_t pressDuration[numElectrodes];
   } mprs;
 
 MPR121_t MPR121A;
-MPR121_t MPR121B;
-MPR121_t MPR121C;
+MPR121_t MPR121B; // additional MPR chips will be defined but not all may be used.
+MPR121_t MPR121C; // 4 maximimum possible on single i2c bus
 MPR121_t MPR121D;
 
 #ifdef ENGINEERING
@@ -82,6 +84,7 @@ mprs chips[] = {
                     }
                   };
 #endif // ENGINEERING
+
 #ifdef WEAPONS
 mprs chips[] = {
                     (mprs) {MPR121A, 0x5A, 
@@ -119,6 +122,7 @@ mprs chips[] = {
                     }
                   };
 #endif // WEAPONS
+
 #ifdef SCIENCE
 mprs chips[] = {
                     (mprs) {MPR121A, 0x5A, 
@@ -131,6 +135,7 @@ mprs chips[] = {
                     }
                   };
 #endif // SCIENCE
+
 #ifdef FIGHTER
 mprs chips[] = {
                     (mprs) {MPR121A, 0x5A, 
@@ -143,6 +148,7 @@ mprs chips[] = {
                     }
                   };
 #endif // FIGHTER
+
 #ifdef COMMUNICATIONS
 mprs chips[] = {
                     (mprs) {MPR121A, 0x5A, 
@@ -163,6 +169,7 @@ mprs chips[] = {
                     }                  };
 
 #endif // COMMUNICATIONS
+
 #ifdef HELM
 mprs chips[] = {
                     (mprs) {MPR121A, 0x5A, 
@@ -193,6 +200,7 @@ mprs chips[] = {
                     }
                   };
 #endif // HELM
+
 #ifdef DEBUG_CONSOLE
 mprs chips[] = {
                     (mprs) {MPR121A, 0x5A,                           
@@ -201,7 +209,7 @@ mprs chips[] = {
                       {00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}, //modifier     
                       {00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}, //key     
                       {00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}  //pressDuration
-                    },
+                    }/*, // move start of comment to define number of MPR chips.
                     
                     (mprs) {MPR121B, 0x5B, 
                       {20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20,   20}, //tthresh      
@@ -223,7 +231,7 @@ mprs chips[] = {
                       {00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}, //modifier     
                       {00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}, //key     
                       {00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}  //pressDuration
-                    }/**/
+                    }*/
                   };
 #endif // DEBUG_CONSOLE
 
@@ -243,9 +251,9 @@ void setup()
   		   // Arduino Leonardo or Bare Touch Board
   Serial.println("started");
   #ifndef DEBUG_CONSOLE
-		#ifdef HELM
-		  Joystick.begin();
-	  #endif // HELM
+    #ifdef HELM
+      Joystick.begin();
+    #endif // HELM
   Keyboard.begin();
   #endif // DEBUG_CONSOLE
   Wire.begin();
@@ -321,10 +329,10 @@ void loop()
                 delay(100);
               }
               if (chips[index].key[channel] > 0) {
-              Keyboard.press(chips[index].key[channel]);
-              delay(100);
-              delay(chips[index].pressDuration[channel]);
-              Keyboard.release(chips[index].key[channel]);
+                Keyboard.press(chips[index].key[channel]);
+                delay(100);
+                delay(chips[index].pressDuration[channel]);
+                Keyboard.release(chips[index].key[channel]);
               }
               delay(100);
               Keyboard.releaseAll();
